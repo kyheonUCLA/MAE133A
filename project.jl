@@ -106,16 +106,16 @@ md"""
 Answer: $(round(typeof(ans4), ans4,digits=2))
 """
 
-# ╔═╡ 31e31fa0-bd10-4ee2-9222-be7283884dc7
-ans8 = let
-	x = 1u"K"
+# ╔═╡ bb15cd28-6812-4402-bffe-a0c849528643
+ans10 = let
+	x = 5u"K"
 end
 
-# ╔═╡ 4a1b2c62-0048-4f58-a597-c0e728c9bdd0
+# ╔═╡ 0965a736-3af7-478d-b07c-e42d9b939473
 md"""
-7) What fraction of this reactor exergy destruction is consumed by cooling the graphite from 1600 K to room temperature?
+10) Calculate the total exergy destroyed as the pressurized hydrogen loses heat from the tank to the surroundings
 
-Answer: $(round(typeof(ans8), ans8,digits=2))
+Answer: $(round(typeof(ans10),ans10,digits=2))
 """
 
 # ╔═╡ 1d65754b-57ec-420d-a5be-adea52476969
@@ -152,13 +152,20 @@ function pumpExergy(pump::Pump, Tₒ)
 end
 
 # ╔═╡ a5099c86-0ad1-4b6d-9574-8a4b2aec492d
-let
+ans9 = let
 	pump = Pump(-0.5u"kW", 10, 0.1u"bar", 300u"K")
 	pumpTemperature(pump)
 	# pumpEfficiency(pump)
 	pumpExergyDestroyed(pump, 298u"K")
 	pumpExergy(pump, 298u"K")
 end
+
+# ╔═╡ 62634867-2e70-43bb-a0cd-b9629723f244
+md"""
+9) Calculate the rate of exergy destruction in the compression process.
+
+Answer: $(round(typeof(ans9),ans9,digits=2))
+"""
 
 # ╔═╡ 7dc1dcf2-9cf2-4c34-b10d-0900937e4d2e
 function valveTemperature(valve::Valve)
@@ -209,6 +216,13 @@ function reactorChemicalExergy(react::Reactor, Tₒ)
 	uconvert(u"kW", Ex_chem)
 end
 
+# ╔═╡ 4c0a7f58-a659-4cda-9037-335bbc56d953
+function coolerHeat(hx::Cooler)
+	Hin = PropsSI("Hmolar", "T", hx.Tin, "P", hx.Pin, "H2")
+	Hex = PropsSI("Hmolar", "T", hx.Tex, "P", hx.Pex, "H2")
+	return uconvert(u"kW", n_dot_h2*(Hex-Hin))
+end
+
 # ╔═╡ 554e0545-78ae-4fb3-9bbc-d00edcc91045
 function molar_enthalpy(T, P, name::String, Hf=0u"kJ/kmol")
 	Href = PropsSI("Hmolar", "T", 298.15u"K", "P", 1u"atm", name)
@@ -249,6 +263,35 @@ md"""
 6) Calculate the rate of exergy destruction in the reactor at nominal efficiency
 
 Answer: $(round(typeof(ans6), ans6,digits=2))
+"""
+
+# ╔═╡ 31e31fa0-bd10-4ee2-9222-be7283884dc7
+ans7 = let
+	Ed = ans6 #getting reactor exergy
+	Q_c = 1u"kg"
+	# need to use mc delta T
+end
+
+# ╔═╡ 4a1b2c62-0048-4f58-a597-c0e728c9bdd0
+md"""
+7) What fraction of this reactor exergy destruction is consumed by cooling the graphite from 1600 K to room temperature?
+
+Answer: $(round(typeof(ans7), ans7,digits=2))
+"""
+
+# ╔═╡ 45e0cbfe-06a3-4504-8ebe-79b7915e7e22
+ans8 = let
+	Ed = ans6
+	hx = Cooler(T_pyro, 298u"K", P_react, P_react) #isobaric cooling
+	Q_h2 = coolerHeat(hx)
+	fraction = Q_h2/Ed
+end
+
+# ╔═╡ 61691472-8282-4588-8ea1-daac04a472d2
+md"""
+8) What fraction of this reactor exergy destruction is consumed by cooling the product hydrogen from 1600 K to room temperature?
+
+Answer: $(round(ans8,digits=2))
 """
 
 # ╔═╡ f4a60594-ebec-4c1f-8c60-66a1215c4784
@@ -469,8 +512,13 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╟─3a582d65-a2f9-4ccf-aab0-e6d38acbbd50
 # ╠═8a6a970b-491c-41b3-ac76-8c82fa87077e
 # ╟─4a1b2c62-0048-4f58-a597-c0e728c9bdd0
-# ╠═31e31fa0-bd10-4ee2-9222-be7283884dc7
+# ╟─31e31fa0-bd10-4ee2-9222-be7283884dc7
+# ╟─61691472-8282-4588-8ea1-daac04a472d2
+# ╠═45e0cbfe-06a3-4504-8ebe-79b7915e7e22
+# ╟─62634867-2e70-43bb-a0cd-b9629723f244
 # ╠═a5099c86-0ad1-4b6d-9574-8a4b2aec492d
+# ╟─0965a736-3af7-478d-b07c-e42d9b939473
+# ╠═bb15cd28-6812-4402-bffe-a0c849528643
 # ╠═1d65754b-57ec-420d-a5be-adea52476969
 # ╠═5dd20bf6-6416-4214-bbae-a3ef287a47b5
 # ╠═d79ef2bf-9cba-4f52-9a68-15ac05c68d3d
@@ -482,6 +530,7 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═96d3e8a4-9a50-4e17-bddd-4ba7a4714d1c
 # ╠═f4a60594-ebec-4c1f-8c60-66a1215c4784
 # ╠═1ab27cb2-34db-4501-89d0-1256d6060705
+# ╠═4c0a7f58-a659-4cda-9037-335bbc56d953
 # ╠═554e0545-78ae-4fb3-9bbc-d00edcc91045
 # ╠═a5f8c399-a773-4868-b91b-3c8c7ac35103
 # ╠═47f72e30-757e-4806-b189-2d79fdaa96b2
