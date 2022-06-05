@@ -32,7 +32,7 @@ struct Valve
 end
 
 # ╔═╡ 719eef9e-ac7a-4b2d-bb05-19740d43c9ba
-# Heat Exhanger does no work
+# ideal Heat Exhanger, approximatly isobaric cooling
 struct Cooler
 	Tin::Any
 	Tex::Any
@@ -75,9 +75,10 @@ begin
 	M_carbon = 12u"g/mol"
 	C_carbon = 0.71u"J/g/K"
 	R = 8.3145u"J/mol/K"
-
-	MODEL2 = Dict("C"=>410_260u"kJ/kmol", "H2"=>236_100u"kJ/kmol", "CH4"=>831_650u"kJ/kmol")
 	
+	MolarMass = Dict("C"=>12.01u"g/mol", "H2"=>2.02u"g/mol", "CH4"=>16.04u"g/mol")
+	MODEL2 = Dict("C"=>410_260u"kJ/kmol", "H2"=>236_100u"kJ/kmol", "CH4"=>831_650u"kJ/kmol")
+
 	## Initial Calcuations
 	n_dot_meth = uconvert(u"kmol/s", 0.1 * Q_solar / H_rxn)
 	n_dot_meth |> println
@@ -96,9 +97,34 @@ md"""
 
 # ╔═╡ 66ffbd89-03a3-4931-ab2b-05f828a2973c
 let
-
-
+	
+	power = -5u"kW"	
+	pumps = []
+	P = P_react
+	for i = 1:3
+		pump = Pump(power/n_dot_h2, 10, P, 35u"°C", "H2", 0.8)
+		push!(pumps, pump)
+		P = pump.P * pump.ratio
+	end
+	push!(pumps, Pump(power/n_dot_h2, 2, P, 35u"°C", "H2", 0.8))
+	P_final = pumps[lastindex(pumps)].P * pumps[lastindex(pumps)].ratio
+	uconvert(u"bar", P_final)
 end
+
+# ╔═╡ ee854bbd-10bf-465c-8346-f6725aebdc5b
+ans2 = let
+	molarFlowCH4 = uconvert(u"kmol/s", 0.1 * Q_solar / H_rxn)
+	ρ = PropsSI("D", "T", 273u"K", "P", 1u"atm", "CH4")
+	scfm = molarFlowCH4*MolarMass["CH4"] / ρ
+	uconvert(u"cm^3/minute", scfm)
+end
+
+# ╔═╡ 7a13c45f-bc2e-452a-9c5c-2f455aaf5597
+md"""
+2) What size of methane mass flow controller (in sccm) is required at nominal efficiency? Find a suitable product. 
+
+Answer: $(round(typeof(ans2), ans2,digits=2))
+"""
 
 # ╔═╡ 172aa52c-1a62-435a-876f-91a6bf543cb5
 ans4 = let
@@ -166,14 +192,13 @@ function isentropicEfficiency(pump::Pump)
 	Hs = PropsSI("Hmolar", "T", T_ex, "P", pump.P*pump.ratio, pump.name)
 	H = PropsSI("Hmolar", "T", pump.T, "P", pump.P, pump.name)
 	Hr = H - pump.W
-	S = PropsSI("S", "T", pump.T, "P", pump.P, pump.name)
 	η = (Hs - H)/(Hr - H)
 	return uconvert(u"K/K", η)
 end
 
 # ╔═╡ 5dd18145-5491-4137-9194-d4fe10b76816
 ans3 = let
-	pump_size = -0.495u"kW"
+	pump_size = -1u"kW"
 	pump = Pump(pump_size/n_dot_h2, 10, P_react, 35u"°C", "H2", 0.8)
 	@show temperature(pump)
 	isentropicEfficiency(pump)
@@ -214,20 +239,6 @@ function get_flow_rate(m_dot, T=273.15u"K", P=1u"atm")
 	ρ = PropsSI("D", "T", T, "P", P, "CH4")
 	return uconvert(u"ft^3/minute", m_dot/ρ)
 end
-
-# ╔═╡ ee854bbd-10bf-465c-8346-f6725aebdc5b
-ans2 = let
-	scfm = get_flow_rate(n_dot_meth*M_meth)
-	uconvert(u"cm^3/minute", scfm)
-	uconvert(u"m^3/hr", scfm)
-end
-
-# ╔═╡ 7a13c45f-bc2e-452a-9c5c-2f455aaf5597
-md"""
-2) What size of methane mass flow controller (in sccm) is required at nominal efficiency? Find a suitable product. 
-
-Answer: $(round(typeof(ans2), ans2,digits=2))
-"""
 
 # ╔═╡ fc17e89c-8495-42c7-902a-b5b005a4ed7e
 function get_flow_exergy(T, P, Tₒ, Pₒ, name::String)
