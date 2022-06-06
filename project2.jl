@@ -87,12 +87,7 @@ begin
 	n_dot_c = n_dot_meth
 	n_dot_meth = 0.00688973u"mol/s"
 	n_dot_h2 = 2 * n_dot_meth
-	
-end
 
-
-# ╔═╡ addb44fe-d353-42f4-94ba-0a8a26bacdc6
-begin
 	massH2 = 1u"kg"
 	massC = 3u"kg"
 	
@@ -100,13 +95,14 @@ begin
 	molH2 = massH2/MolarMass["H2"]
 	molC = massC/MolarMass["C"]
 	molCH4 = molC
-
+		
 	MolarFlow = Dict("C"=>molC/day, "H2"=>molH2/day, "CH4"=>molC/day)
 	MolarFlow["C"] = uconvert(u"mol/s", MolarFlow["C"])
 	MolarFlow["H2"] = uconvert(u"mol/s", MolarFlow["H2"])
 	MolarFlow["CH4"] = uconvert(u"mol/s", MolarFlow["CH4"])
 	
 end
+
 
 # ╔═╡ e5903da9-977b-4a30-a51a-2f84b9bb7a6d
 md"""
@@ -121,9 +117,8 @@ md"""
 
 # ╔═╡ ee854bbd-10bf-465c-8346-f6725aebdc5b
 ans2 = let
-	molarFlowCH4 = uconvert(u"kmol/s", 0.1 * Q_solar / H_rxn)
 	ρ = PropsSI("D", "T", 273u"K", "P", 1u"atm", "CH4")
-	scfm = molarFlowCH4*MolarMass["CH4"] / ρ
+	scfm = MolarFlow["CH4"]*MolarMass["CH4"] / ρ
 	uconvert(u"cm^3/minute", scfm)
 end
 
@@ -133,18 +128,6 @@ md"""
 
 """
 
-# ╔═╡ 54fb5386-ead8-4be0-b539-58c9c959f894
-md"""
-We couldn't find any good data for our specific hydrogen pump, but various papers suggest an isentropic effeciency of 65-85%. 
-"""
-
-# ╔═╡ 5dd18145-5491-4137-9194-d4fe10b76816
-# ans3 = let
-# 	pump_size = -1u"kW"
-# 	pump = Pump(pump_size/MolarFlow["H2"], 10, P_react, 35u"°C", "H2", 0.8)
-# 	@show temperature(pump)
-# end
-
 # ╔═╡ c5e700ce-7b4b-4b9a-987c-f1b98616efde
 md"""
 4) Calculate the final pressure of the tube cylinder at the end of one day.
@@ -153,7 +136,7 @@ md"""
 
 # ╔═╡ 172aa52c-1a62-435a-876f-91a6bf543cb5
 ans4 = let
-	molH2 = 1u"kg"/M_h2
+	molH2 = massH2/MolarMass["H2"]
 	P_H2 = molH2 * R * T_tank / V_tank
 	P_final = uconvert(u"bar", P_tank_min + P_H2)
 end
@@ -177,34 +160,9 @@ md"""
 
 """
 
-# ╔═╡ 31e31fa0-bd10-4ee2-9222-be7283884dc7
-ED_C = let
-	Tₒ = 298u"K"
-	Pₒ = 1u"atm"
-	Tb = 300u"K"
-	massCarbon = 3u"kg"
-	ΔT = (T_pyro - Tₒ)
-	Q = massCarbon*C_carbon*ΔT/10u"hr"
-	uconvert(u"kW", (1-Tₒ/Tb)*Q)
-	
-	
-end
-
-# ╔═╡ 3f75aca3-7c5c-48e6-800d-2b6411171d49
-md"""
-### Answer: 
-0.23% of exergy destruction consumed by cooling graphite from 1600K to room temperature. 
-"""
-
 # ╔═╡ 61691472-8282-4588-8ea1-daac04a472d2
 md"""
 8) What fraction of this reactor exergy destruction is consumed by cooling the product hydrogen from 1600 K to room temperature?
-"""
-
-# ╔═╡ 1b6134f6-1643-4f90-831d-3a25c5c76253
-md"""
-### Answer
-158% of the exergy destruction of the reactor is destroyed cooling H2. 
 """
 
 # ╔═╡ 62634867-2e70-43bb-a0cd-b9629723f244
@@ -213,6 +171,19 @@ md"""
 
 """
 
+# ╔═╡ a5099c86-0ad1-4b6d-9574-8a4b2aec492d
+ans9 = let
+	Tₒ = 298u"K"
+	Pₒ = 1u"atm"
+	Tb = 300u"K"
+	pumps = []
+	coolers = []
+	for i = 1:4
+		if i ==
+		push!(pumps, pump)
+	end
+end
+
 # ╔═╡ 0965a736-3af7-478d-b07c-e42d9b939473
 md"""
 10) Calculate the total exergy destroyed as the pressurized hydrogen loses heat from the tank to the surroundings
@@ -220,84 +191,9 @@ md"""
 """
 
 # ╔═╡ bb15cd28-6812-4402-bffe-a0c849528643
-md"""
-Our design uses heat exchangers before and after every compressor stage. This means that the gas enters the tank at ambient temperature and tank pressure. Therefore there is not exergy change/no exergy destruction at this point. 
-
-Answer: 0
-"""
-
-# ╔═╡ 0fd0f1e2-f6d4-4ed0-b88e-006742e4e40d
-md"""
-### 11:
-If the heat lost by the hydrogen stream between the reaction zone and the compressor inlet could be sent completely back into the reaction zone, then by what percentage could the methane mass flow rate increase? What would be the exergy destruction? Would it increase or decrease? By how much?
-"""
-
-# ╔═╡ 09f63e0d-ed35-4a76-9cc0-f27b7a07f532
-let
-	h1 = PropsSI("Hmolar", "T", T_pyro, "P", P_react, "H2")
-	h2 = PropsSI("Hmolar", "T", 298u"K", "P", 200u"bar", "H2") 
-
-	Q_cooling = (h1-h2)*n_dot_h2
-
-	Q_inital = uconvert(u"kW", MolarFlow["CH4"]*H_rxn/0.1)
-	Q_final = uconvert(u"kW", Q_inital + Q_cooling)
-
-	n_final_new = uconvert(u"mol/s", Q_final*0.1/H_rxn)
-	uconvert(u"K/K", (n_final_new-MolarFlow["CH4"])/MolarFlow["CH4"])*100
+ans10 = let
+	x = 5u"K"
 end
-
-# ╔═╡ 2374b686-40a3-498f-b044-72248177966e
-md"""
-Answer: The molar (and mass) flow rate of methane would increase by 10.5%. 
-"""
-
-# ╔═╡ be0ad564-d61b-41de-b607-00ac5731a7f1
-md"""
-### 12.
-What are the technical and/or societal benefits and drawbacks of using solar heating in this design, as compared to burning methane or hydrogen for pyrolysis?
-"""
-
-# ╔═╡ 7720cdad-3c6b-4f4b-a4fe-691f6546b944
-md"""
-It is assumed that a solar concentrator is being used for this system. A solar concentrator works by having a curved surface or a series of flat surfaces all angled toward one focus, so that the sunlight bounces of the surfaces and reflects all to the same point. At that point a receiver is placed to collect the energy from the sun. This set up is fairly cheap to manufacture and set up. However, there is no way to store the energy so the solar concentrator can only be used when the sun is out and shining. It would be ideal to position this somewhere that the efficiency of this process is not decreased significantly.
-
-If solar panels were being used, a battery can be attached to store the energy that isn't being used during the day, allowing the process to continue, even when the sun it not present. While having a battery solves the issue of the sun's limited availablility as an energy source, a new issue is created, cost. The website for the Office of Energy Efficiency and Renewable Energy states that solar batteries can range from \$12,000 to $22,000. In general, there is a high upfront cost with solar panels due to the price of purchasing the panels and their installation if that is required. However, this cost could be made up through the money saved when not paying for other energy sources. The US Government is also starting to offer incentives for using solar panels so those may aid in the initial cost of the solar energy set up.
-
-If the hydrogen and graphite being produced for the assumed 10 hours a day is suffcient, and an irregular production rate due to the sun exposure fluctuation is no issue, than a solar concentrator is a great option. The most significant benefit of solar power over other energy sources, such as burning methane, is that the sun is a renewable energy source. It will never run out of heat to provide, at least not for roughly 5 billion more years. It is also a green energy source. The use of solar energy decreases greenhouse gas production which is vital to slowing the effects of climate change.   
-
-Sources:
-
-https://lightningsolar.com.au/comparative-guide-advantages-disadvantages-of-solar-panels/
-
-https://powersolarphoenix.com/commercial-solar-panels-cost/
-
-https://www.energy.gov/eere/solar/articles/should-i-get-battery-storage-my-solar-energy-system
-
-"""
-
-# ╔═╡ 029cc470-a3d6-439f-addf-79ed481a774f
-md"""
-### 13. 
-More broadly, what are the technical and societal benefits and drawbacks of using methane (from natural gas) as a source for graphite and hydrogen?
-
-"""
-
-# ╔═╡ a5ef9be5-3c63-444c-9233-653d06fd0a68
-md"""
-There is no shortage of methane production in our society. The farming and agriculture industries are huge contributors to the methane content in the atmosphere. When manure is produced by livestock, such as pigs or cattle, methane is released. When the manure is spread onto crops for fertilization, methane is released. A fight has begun to reduce meat and dairy consumption in the US has begun. Alternative milks and vegetarian/vegan options are becoming more widespread than ever before. It is apparent however that much more time and effort is needed to change the general population’s eating habits so methane production continues.
-
-Another significant source of methane in our society is landfills. As organic materials decompose under piles of waste, there are not significant sources of oxygen to facilitate aerobic decomposition. Bacteria that perform anaerobic decomposition come into play. These bacteria are huge sources of methane through their decomposition processes. Composting can help decrease these methane emissions. By collecting organic materials and allowing them to decompose in environments that provide aeration, organisms that do not produce methane can process the materials. Composting is not a widespread habit. Many communities do not have access to composting programs and especially programs that accept food waste, so much of the organic waste still ends up in landfills, producing methane.
-
-Methane is a significant cause for the trapping of heat within Earth’s atmosphere that is leading to climate change. According to UNECE, methane has a warming potential roughly 28-34% higher than that of CO2. Methane capture is a solution being presented to the high emissions of methane from the above sources. In that set up, perforated tubes are arranged through the methane producing areas to collect the methane and transport it to facilities that will burn it. This will prevent much of the methane being produced in industrial settings from reaching the atmosphere. 
- 
-A downside of burning methane is that CO2 is produced by the process. CO2 in the atmosphere is another cause to the greenhouse effect. However, if the methane being burned is harvested from the atmosphere then the benefits of destroying methane outweighs the drawbacks of CO2 production. The burning of this collected methane is also beneficial because it eliminates reliance on other energy sources that also produce greenhouse gasses. As outlined above, due to the processes used for food production and waste management that this society relies upon, there is an abundance of methane to be utilized for burning and heating. If it is not utilized, it is only making the climate change issue worse.
-
-Sources: 
-
-https://www.epa.gov/lmop/basic-information-about-landfill-gas
-
-https://unece.org/challenge
-"""
 
 # ╔═╡ 1d65754b-57ec-420d-a5be-adea52476969
 begin
@@ -319,14 +215,11 @@ begin
 	end
 end
 
-# ╔═╡ 43a8e290-19c9-4150-9c56-a1dad4f1338c
-begin
-	function pressure(hx::Cooler)
-		k = 1.4
-		polytropicExp = k/(k-1)
-		P = hx.P*(hx.Tex/hx.Tin)^polytropicExp
-		return uconvert(u"bar", P)
-	end
+# ╔═╡ 5dd18145-5491-4137-9194-d4fe10b76816
+ans3 = let
+	pump_size = -1u"kW"
+	pump = Pump(pump_size/n_dot_h2, 10, P_react, 35u"°C", "H2", 0.8)
+	@show temperature(pump)
 end
 
 # ╔═╡ 451a4e43-8a9e-46a3-8919-750648c8289e
@@ -348,7 +241,7 @@ begin
 	function heat(react::Reactor) 
 		Hin = molar_enthalpy(react.Tin, react.P, "CH4", Hf_meth)
 		Hex = molar_enthalpy(react.Tex, react.P, "H2")
-		Q =  n_dot_h2*Hex-MolarFlow["CH4"]*Hin
+		Q =  MolarFlow["H2"]*Hex-MolarFlow["CH4"]*Hin
 		return uconvert(u"kW", Q)
 	end
 
@@ -357,12 +250,6 @@ begin
 		Hex = PropsSI("Hmolar", "T", hx.Tex, "P", hx.P, hx.name)
 		return uconvert(u"kJ/mol", (Hex-Hin))
 	end
-end
-
-# ╔═╡ a5f8c399-a773-4868-b91b-3c8c7ac35103
-function get_flow_rate(m_dot, T=273.15u"K", P=1u"atm")
-	ρ = PropsSI("D", "T", T, "P", P, "CH4")
-	return uconvert(u"ft^3/minute", m_dot/ρ)
 end
 
 # ╔═╡ fc17e89c-8495-42c7-902a-b5b005a4ed7e
@@ -382,7 +269,7 @@ ED_reactor = let
 	valve = Valve(T_in, P_in, P_react, "CH4")
 	T_in_to_react = temperature(valve)
 
-	Q_in = MolarFlow["CH4"]*H_rxn/0.1
+	Q_in = n_dot_meth*H_rxn/0.1
 	
 	Tb = T_pyro
 	react = Reactor(T_in_to_react, T_pyro, P_react, Tb)
@@ -390,40 +277,23 @@ ED_reactor = let
 	chem_Ex = MODEL2["CH4"] - 2*MODEL2["H2"] - MODEL2["C"]
 	e_in = get_flow_exergy(T_in_to_react, P_react, Tₒ, Pₒ, "CH4")
 	e_out = get_flow_exergy(T_pyro, P_react, Tₒ, Pₒ, "H2")
-	flow_exergy = uconvert(u"kW", e_in*MolarFlow["CH4"] - e_out*MolarFlow["H2"])
+	flow_exergy = uconvert(u"kW", e_in*n_dot_meth - e_out*n_dot_h2)
 
 	flow_exergy
 	
 	Q_rxn = heat(react)
-	Q_waste = uconvert(u"kW", Q_in - Q_rxn)
+	@show heat(react)
+	@show Q_waste = uconvert(u"kW", Q_in - Q_rxn)
+	@show Q_rxn
+	Q_Carbon = -3u"kg"*C_carbon*(T_pyro - uconvert(u"K", 35u"°C"))/10u"hr"
+	Q_H2 = heat(Cooler(T_pyro, 35u"°C", P_react, Tb, "H2"))*n_dot_h2
+	Q_net = uconvert(u"kW",Q_rxn + Q_H2 + Q_Carbon)
 	Q_net = Q_rxn
 	
-	Ed = (1-Tₒ/Tb)*Q_net + flow_exergy + chem_Ex*MolarFlow["CH4"]
+	Ed = (1-Tₒ/Tb)*Q_net + flow_exergy + chem_Ex*n_dot_meth
 	uconvert(u"kW", Ed)
+	@show uconvert(u"kW", Ed)
 	
-end
-
-# ╔═╡ aaafbbca-052b-4993-931e-ac5c9a827809
-(ED_C/ED_reactor)*100
-
-# ╔═╡ cc1d1854-0bde-4102-8ecb-262e4b52ac35
-ED_H2 = let
-	Tₒ = 298u"K"
-	Pₒ = 1u"atm"
-	Tb = Tₒ
-	
-	H1 = PropsSI("Hmolar", "T", T_pyro, "P", P_react, "H2")
-	H2 = PropsSI("Hmolar", "T", Tₒ, "P", P_react, "H2")
-	Q = (H2-H1)*MolarFlow["H2"]
-	e1 = get_flow_exergy(T_pyro, P_react, Tₒ, Pₒ, "H2")
-	e2 = get_flow_exergy(Tₒ, P_react, Tₒ, Pₒ, "H2")
-
-	(1-Tₒ/Tb)*Q + (e1-e2)*MolarFlow["H2"]
-end
-
-# ╔═╡ 45e0cbfe-06a3-4504-8ebe-79b7915e7e22
-ans8 = let
-	uconvert(u"K/K", ED_H2/ED_reactor)
 end
 
 # ╔═╡ 2ff23a31-b092-4841-bf5c-d92076c61517
@@ -452,7 +322,7 @@ begin
 		e_ex = get_flow_exergy(react.Tex,react.P,Tₒ,Pₒ,"H2")
 		chem_Ex = MODEL2["CH4"] - 2*MODEL2["H2"] - MODEL2["C"]
 		Q = -heat(react)
-		Ed = (1-Tₒ/Tb)*Q + MolarFlow["CH4"]*e_in-MolarFlow["H2"]*e_ex + MolarFlow["CH4"]*chem_Ex
+		Ed = (1-Tₒ/Tb)*Q + MolarFlow["CH4"]*e_in-MolarFlow["H2"]*e_ex +MolarFlow["CH4"]*chem_Ex
 		return uconvert(u"kW", Ed)
 	end
 
@@ -471,39 +341,59 @@ ans5 = let
 	Tₒ = 298u"K"
 	Pₒ = 1u"atm"
 	valve = Valve(T_in, P_in, P_react, "CH4")
-	ED = exergyDestroyed(valve, Tₒ, Pₒ)*MolarFlow["CH4"]
-	uconvert(u"kW", ED)
+	Ed_valve = exergyDestroyed(valve, Tₒ, Pₒ)*MolarFlow["CH4"]
+	uconvert(u"kW", Ed_valve)
 end
 
-# ╔═╡ 0e0f87f3-c47e-493e-ba21-21f00f3df827
-ans9 = let
+# ╔═╡ 74fb0450-10ad-4dc4-b157-2b3517088a93
+ans6 = let
 	Tₒ = 298u"K"
 	Pₒ = 1u"atm"
+	T_react = 298u"K"
+	Tpump = 300u"K"
 	Tb = 300u"K"
-	Tp = 300u"K"
-	P = P_react
-	T = Tp		
-	power = -5u"kW"	
-	pumps = []
-	hxs = []
-	P = P_react
-	T = Tp
-	for i = 1:3
-		pump = Pump(power/MolarFlow["H2"], 10, P, Tp, "H2", 0.65)
-		push!(pumps, pump)
-		P = pump.P * pump.ratio
-		T = temperature(pump)
-		push!(hxs, Cooler(T, Tp, P, Tb, "H2"))
-	end
-	finalPump = Pump(power/MolarFlow["H2"], 2, P, Tp, "H2", 0.65)
-	push!(pumps, finalPump)
-	T = temperature(finalPump)
-	push!(hxs, Cooler(T, Tp, finalPump.ratio*P, Tb, "H2"))
+	#Tb = T_pyro
+	rxn = Reactor(T_react, T_pyro, P_react, Tb)
+	Ed_rxn = abs(exergyDestroyed(rxn, Tₒ, Pₒ))
 
-	Ed_pumps = sum([exergyDestroyed(pump, Tₒ, Pₒ) for pump in pumps])
-	Ed_hxs = sum([exergyDestroyed(hx, Tₒ, Pₒ) for hx in hxs])
-	Ed_compression = MolarFlow["H2"] * (Ed_pumps + Ed_hxs)
-	uconvert(u"kW", Ed_compression)
+	#Hydrogen Cooling
+	hx = Cooler(T_pyro, Tpump, P_react, Tb, "H2")
+	Ed_H2 = exergyDestroyed(hx, Tₒ, Pₒ)*MolarFlow["H2"]
+
+	#Carbon Cooling
+	Q = massC*C_carbon*(T_pyro - Tₒ)/day
+	Ed_C = Q*(1-Tₒ/Tb)
+	
+	Ed_reactor = Ed_rxn + Ed_H2 + Ed_C
+	uconvert(u"kW", Ed_reactor)
+end
+
+# ╔═╡ 45e0cbfe-06a3-4504-8ebe-79b7915e7e22
+ans8 = let
+	Tₒ = 298u"K"
+	Pₒ = 1u"atm"
+	Tb = T_pyro
+	Ed_reactor = ans6
+	#Carbon Cooling
+	Q = massC*C_carbon*(T_pyro - Tₒ)/day
+	Ed_C = Q*(1-Tₒ/Tb)
+
+	uconvert(u"K/K", Ed_C/Ed_reactor)
+end
+
+# ╔═╡ 31e31fa0-bd10-4ee2-9222-be7283884dc7
+ans7 = let
+	Tₒ = 298u"K"
+	Pₒ = 1u"atm"
+	Tpump = 300u"K"
+	Tb = 300u"K"
+	#Tb = T_pyro
+	Ed_reactor = ans6
+	#Hydrogen Cooling
+	hx = Cooler(T_pyro, Tpump, P_react, Tb, "H2")
+	Ed_H2 = exergyDestroyed(hx, Tₒ, Pₒ)*MolarFlow["H2"]
+
+	uconvert(u"K/K", Ed_H2/Ed_reactor)
 end
 
 # ╔═╡ 21029ebb-c76a-46ec-a29a-a16b3037622c
@@ -537,13 +427,6 @@ let
 	info(0.9)
 	
 end
-
-# ╔═╡ 47f72e30-757e-4806-b189-2d79fdaa96b2
-md"""
-
-Resources: [here] https://www.hydrogen.energy.gov/pdfs/9013_energy_requirements_for_hydrogen_gas_compression.pdf
-
-"""
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -729,48 +612,33 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═719eef9e-ac7a-4b2d-bb05-19740d43c9ba
 # ╠═a7f4fe29-6485-438b-94d4-835ff2e97750
 # ╠═e3a33cab-f8f3-4434-b087-6321698e975b
-# ╠═addb44fe-d353-42f4-94ba-0a8a26bacdc6
 # ╠═e5903da9-977b-4a30-a51a-2f84b9bb7a6d
 # ╠═66ffbd89-03a3-4931-ab2b-05f828a2973c
 # ╟─7a13c45f-bc2e-452a-9c5c-2f455aaf5597
 # ╠═ee854bbd-10bf-465c-8346-f6725aebdc5b
 # ╟─7841815b-c3a5-4c5c-8970-cf18cfba676d
-# ╟─54fb5386-ead8-4be0-b539-58c9c959f894
 # ╠═5dd18145-5491-4137-9194-d4fe10b76816
-# ╟─c5e700ce-7b4b-4b9a-987c-f1b98616efde
+# ╠═c5e700ce-7b4b-4b9a-987c-f1b98616efde
 # ╠═172aa52c-1a62-435a-876f-91a6bf543cb5
 # ╟─c8ac1365-8599-4ab6-b4be-8626fa63b225
 # ╠═2041825c-155c-4ad5-9360-706ecf96ea46
 # ╟─3a582d65-a2f9-4ccf-aab0-e6d38acbbd50
+# ╠═74fb0450-10ad-4dc4-b157-2b3517088a93
 # ╠═6f5470d4-4562-40c5-8229-89137be551cb
 # ╟─4a1b2c62-0048-4f58-a597-c0e728c9bdd0
 # ╠═31e31fa0-bd10-4ee2-9222-be7283884dc7
-# ╠═aaafbbca-052b-4993-931e-ac5c9a827809
-# ╟─3f75aca3-7c5c-48e6-800d-2b6411171d49
 # ╟─61691472-8282-4588-8ea1-daac04a472d2
-# ╠═cc1d1854-0bde-4102-8ecb-262e4b52ac35
 # ╠═45e0cbfe-06a3-4504-8ebe-79b7915e7e22
-# ╟─1b6134f6-1643-4f90-831d-3a25c5c76253
 # ╟─62634867-2e70-43bb-a0cd-b9629723f244
-# ╠═0e0f87f3-c47e-493e-ba21-21f00f3df827
+# ╠═a5099c86-0ad1-4b6d-9574-8a4b2aec492d
 # ╟─0965a736-3af7-478d-b07c-e42d9b939473
-# ╟─bb15cd28-6812-4402-bffe-a0c849528643
-# ╟─0fd0f1e2-f6d4-4ed0-b88e-006742e4e40d
-# ╠═09f63e0d-ed35-4a76-9cc0-f27b7a07f532
-# ╟─2374b686-40a3-498f-b044-72248177966e
-# ╠═be0ad564-d61b-41de-b607-00ac5731a7f1
-# ╟─7720cdad-3c6b-4f4b-a4fe-691f6546b944
-# ╟─029cc470-a3d6-439f-addf-79ed481a774f
-# ╟─a5ef9be5-3c63-444c-9233-653d06fd0a68
+# ╠═bb15cd28-6812-4402-bffe-a0c849528643
 # ╠═1d65754b-57ec-420d-a5be-adea52476969
-# ╠═43a8e290-19c9-4150-9c56-a1dad4f1338c
 # ╠═2ff23a31-b092-4841-bf5c-d92076c61517
 # ╠═46ba6b8a-c7e6-4609-a301-a05eaae599f0
 # ╠═451a4e43-8a9e-46a3-8919-750648c8289e
 # ╠═554e0545-78ae-4fb3-9bbc-d00edcc91045
-# ╠═a5f8c399-a773-4868-b91b-3c8c7ac35103
 # ╠═fc17e89c-8495-42c7-902a-b5b005a4ed7e
 # ╠═21029ebb-c76a-46ec-a29a-a16b3037622c
-# ╠═47f72e30-757e-4806-b189-2d79fdaa96b2
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
