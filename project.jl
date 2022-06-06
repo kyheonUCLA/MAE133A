@@ -10,6 +10,15 @@ begin
 	using CoolProp
 end
 
+# ╔═╡ 22a88a37-1952-4435-a5d6-ec3d6d1f5a13
+md"""
+## Project setup
+Diagram 1
+![Hello](https://github.com/kyheonUCLA/MAE133A/blob/main/diagram1.jpeg?raw=true)
+Diagram 2
+
+"""
+
 # ╔═╡ 94fe6dee-89b4-4e6a-8af7-f35b049066d4
 # Adiabatic H2 Compressor
 struct Pump 
@@ -724,6 +733,7 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 
 # ╔═╡ Cell order:
 # ╠═3b5aaae0-e20e-11ec-0ea1-f39b52d3602e
+# ╠═22a88a37-1952-4435-a5d6-ec3d6d1f5a13
 # ╠═94fe6dee-89b4-4e6a-8af7-f35b049066d4
 # ╠═3a036fda-e16f-4cbf-9bc5-372f575af9a9
 # ╠═719eef9e-ac7a-4b2d-bb05-19740d43c9ba
