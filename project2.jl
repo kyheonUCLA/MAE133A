@@ -392,7 +392,7 @@ ans7 = let
 	#Hydrogen Cooling
 	hx = Cooler(T_pyro, Tpump, P_react, Tb, "H2")
 	Ed_H2 = exergyDestroyed(hx, Tₒ, Pₒ)*MolarFlow["H2"]
-
+	@show uconvert(u"kW", Ed_H2)
 	uconvert(u"K/K", Ed_H2/Ed_reactor)
 end
 

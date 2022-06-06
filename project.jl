@@ -10,9 +10,18 @@ begin
 	using CoolProp
 end
 
+# ╔═╡ 715ed4ad-d7c7-4698-9df1-61b92d8e39f2
+md"""
+## Group Members
+
+Gianna Braga, Brian Burrous, Ky Heon
+"""
+
 # ╔═╡ 22a88a37-1952-4435-a5d6-ec3d6d1f5a13
 md"""
 ## Project setup
+We're using a series of compressors with heat exchangers to cool the gas back to room temperature after each compression. The heat exchanger process is assumed to be isobaric. 
+
 Diagram 1
 ![Hello](https://github.com/kyheonUCLA/MAE133A/blob/main/diagram1.jpeg?raw=true)
 Diagram 2
@@ -123,6 +132,20 @@ md"""
 1) Conduct a search of available hydrogen compressors. Does a single compressor exist that serves the required function (gas flow, pressure ratio)? If not, what multiple compressor configuration would satisfy the specifications? Explain and include links where appropriate.
 """
 
+# ╔═╡ 62f35fcc-0333-40ec-952d-f199031db50c
+md"""
+We will use a series of 4 compressors, assuming compressor ratios of 10, 10, 10, and 2, to get to the desired tank pressure of 200 bar. The first three stanges can be accomplished using the following compressor
+
+https://www.directindustry.com/prod/fornovo-gas-spa/product-223666-2423388.html
+
+The final compressor stage exceeds the maximum pressure of this compressor, so we will also be using this compressor for the final compression stage. 
+
+https://www.directindustry.com/prod/jp-sauer-sohn-maschinenbau-gmbh/product-5707-1982415.html 
+"""
+
+# ╔═╡ 66ffbd89-03a3-4931-ab2b-05f828a2973c
+
+
 # ╔═╡ 7a13c45f-bc2e-452a-9c5c-2f455aaf5597
 md"""
 2) What size of methane mass flow controller (in sccm) is required at nominal efficiency? Find a suitable product. 
@@ -131,9 +154,8 @@ md"""
 
 # ╔═╡ ee854bbd-10bf-465c-8346-f6725aebdc5b
 ans2 = let
-	molarFlowCH4 = uconvert(u"kmol/s", 0.1 * Q_solar / H_rxn)
 	ρ = PropsSI("D", "T", 273u"K", "P", 1u"atm", "CH4")
-	scfm = molarFlowCH4*MolarMass["CH4"] / ρ
+	scfm = MolarFlow["CH4"]*MolarMass["CH4"] / ρ
 	uconvert(u"cm^3/minute", scfm)
 end
 
@@ -191,7 +213,7 @@ md"""
 ED_C = let
 	Tₒ = 298u"K"
 	Pₒ = 1u"atm"
-	Tb = 300u"K"
+	Tb = T_pyro
 	massCarbon = 3u"kg"
 	ΔT = (T_pyro - Tₒ)
 	Q = massCarbon*C_carbon*ΔT/10u"hr"
@@ -203,7 +225,7 @@ end
 # ╔═╡ 3f75aca3-7c5c-48e6-800d-2b6411171d49
 md"""
 ### Answer: 
-0.23% of exergy destruction consumed by cooling graphite from 1600K to room temperature. 
+3% of exergy destruction consumed by cooling graphite from 1600K to room temperature. 
 """
 
 # ╔═╡ 61691472-8282-4588-8ea1-daac04a472d2
@@ -214,7 +236,7 @@ md"""
 # ╔═╡ 1b6134f6-1643-4f90-831d-3a25c5c76253
 md"""
 ### Answer
-158% of the exergy destruction of the reactor is destroyed cooling H2. 
+34% of the exergy destruction of the reactor is destroyed cooling H2. 
 """
 
 # ╔═╡ 62634867-2e70-43bb-a0cd-b9629723f244
@@ -385,57 +407,6 @@ function get_flow_exergy(T, P, Tₒ, Pₒ, name::String)
 	return uconvert(u"kJ/kmol", +flow)
 end
 
-# ╔═╡ 6f5470d4-4562-40c5-8229-89137be551cb
-ED_reactor = let
-	Tₒ = 298u"K"
-	Pₒ = 1u"atm"
-	valve = Valve(T_in, P_in, P_react, "CH4")
-	T_in_to_react = temperature(valve)
-
-	Q_in = MolarFlow["CH4"]*H_rxn/0.1
-	
-	Tb = T_pyro
-	react = Reactor(T_in_to_react, T_pyro, P_react, Tb)
-	
-	chem_Ex = MODEL2["CH4"] - 2*MODEL2["H2"] - MODEL2["C"]
-	e_in = get_flow_exergy(T_in_to_react, P_react, Tₒ, Pₒ, "CH4")
-	e_out = get_flow_exergy(T_pyro, P_react, Tₒ, Pₒ, "H2")
-	flow_exergy = uconvert(u"kW", e_in*MolarFlow["CH4"] - e_out*MolarFlow["H2"])
-
-	flow_exergy
-	
-	Q_rxn = heat(react)
-	Q_waste = uconvert(u"kW", Q_in - Q_rxn)
-	Q_net = Q_rxn
-	
-	Ed = (1-Tₒ/Tb)*Q_net + flow_exergy + chem_Ex*MolarFlow["CH4"]
-	uconvert(u"kW", Ed)
-	
-end
-
-# ╔═╡ aaafbbca-052b-4993-931e-ac5c9a827809
-(ED_C/ED_reactor)*100
-
-# ╔═╡ cc1d1854-0bde-4102-8ecb-262e4b52ac35
-ED_H2 = let
-	Tₒ = 298u"K"
-	Pₒ = 1u"atm"
-	Tb = Tₒ
-	
-	H1 = PropsSI("Hmolar", "T", T_pyro, "P", P_react, "H2")
-	H2 = PropsSI("Hmolar", "T", Tₒ, "P", P_react, "H2")
-	Q = (H2-H1)*MolarFlow["H2"]
-	e1 = get_flow_exergy(T_pyro, P_react, Tₒ, Pₒ, "H2")
-	e2 = get_flow_exergy(Tₒ, P_react, Tₒ, Pₒ, "H2")
-
-	(1-Tₒ/Tb)*Q + (e1-e2)*MolarFlow["H2"]
-end
-
-# ╔═╡ 45e0cbfe-06a3-4504-8ebe-79b7915e7e22
-ans8 = let
-	uconvert(u"K/K", ED_H2/ED_reactor)
-end
-
 # ╔═╡ 2ff23a31-b092-4841-bf5c-d92076c61517
 begin
 	function exergyDestroyed(pump::Pump, Tₒ, Pₒ)
@@ -483,6 +454,52 @@ ans5 = let
 	valve = Valve(T_in, P_in, P_react, "CH4")
 	ED = exergyDestroyed(valve, Tₒ, Pₒ)*MolarFlow["CH4"]
 	uconvert(u"kW", ED)
+end
+
+# ╔═╡ 378cd3e8-c855-4e7e-a996-31785cebf62d
+ED_reactor = let
+	Tₒ = 298u"K"
+	Pₒ = 1u"atm"
+	T_react = 298u"K"
+	Tpump = 300u"K"
+	Tb = 300u"K"
+	#Tb = T_pyro
+	rxn = Reactor(T_react, T_pyro, P_react, Tb)
+	Ed_rxn = abs(exergyDestroyed(rxn, Tₒ, Pₒ))
+
+	#Hydrogen Cooling
+	hx = Cooler(T_pyro, Tpump, P_react, Tb, "H2")
+	Ed_H2 = exergyDestroyed(hx, Tₒ, Pₒ)*MolarFlow["H2"]
+
+	#Carbon Cooling
+	Q = massC*C_carbon*(T_pyro - Tₒ)/day
+	Ed_C = Q*(1-Tₒ/Tb)
+	
+	Ed_reactor = Ed_rxn + Ed_H2 + Ed_C
+	uconvert(u"kW", Ed_reactor)
+end
+
+# ╔═╡ aaafbbca-052b-4993-931e-ac5c9a827809
+# Final ratio (percentage)
+(ED_C/ED_reactor)*100
+
+# ╔═╡ cc1d1854-0bde-4102-8ecb-262e4b52ac35
+ED_H2 = let
+	Tₒ = 298u"K"
+	Pₒ = 1u"atm"
+	Tpump = 300u"K"
+	Tb = 300u"K"
+	#Tb = T_pyro
+	#Hydrogen Cooling
+	hx = Cooler(T_pyro, Tpump, P_react, Tb, "H2")
+	Ed_H2 = exergyDestroyed(hx, Tₒ, Pₒ)*MolarFlow["H2"]
+
+	uconvert(u"kW", Ed_H2)
+end
+
+# ╔═╡ 45e0cbfe-06a3-4504-8ebe-79b7915e7e22
+ans8 = let
+	uconvert(u"K/K", ED_H2/ED_reactor)*100
 end
 
 # ╔═╡ 0e0f87f3-c47e-493e-ba21-21f00f3df827
@@ -537,15 +554,6 @@ function info(η)
 			@show exergyDestroyed(pump, Tₒ, Pₒ)
 			"\n" |> print
 		end
-end
-
-# ╔═╡ 66ffbd89-03a3-4931-ab2b-05f828a2973c
-let
-	"E = 0.3" |> println
-	info(0.3)
-	"E = 0.9" |> println
-	info(0.9)
-	
 end
 
 # ╔═╡ 47f72e30-757e-4806-b189-2d79fdaa96b2
@@ -734,6 +742,7 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 
 # ╔═╡ Cell order:
 # ╠═3b5aaae0-e20e-11ec-0ea1-f39b52d3602e
+# ╟─715ed4ad-d7c7-4698-9df1-61b92d8e39f2
 # ╟─22a88a37-1952-4435-a5d6-ec3d6d1f5a13
 # ╠═94fe6dee-89b4-4e6a-8af7-f35b049066d4
 # ╠═3a036fda-e16f-4cbf-9bc5-372f575af9a9
@@ -742,6 +751,7 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═e3a33cab-f8f3-4434-b087-6321698e975b
 # ╠═addb44fe-d353-42f4-94ba-0a8a26bacdc6
 # ╠═e5903da9-977b-4a30-a51a-2f84b9bb7a6d
+# ╟─62f35fcc-0333-40ec-952d-f199031db50c
 # ╠═66ffbd89-03a3-4931-ab2b-05f828a2973c
 # ╟─7a13c45f-bc2e-452a-9c5c-2f455aaf5597
 # ╠═ee854bbd-10bf-465c-8346-f6725aebdc5b
@@ -753,7 +763,7 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╟─c8ac1365-8599-4ab6-b4be-8626fa63b225
 # ╠═2041825c-155c-4ad5-9360-706ecf96ea46
 # ╟─3a582d65-a2f9-4ccf-aab0-e6d38acbbd50
-# ╠═6f5470d4-4562-40c5-8229-89137be551cb
+# ╠═378cd3e8-c855-4e7e-a996-31785cebf62d
 # ╟─4a1b2c62-0048-4f58-a597-c0e728c9bdd0
 # ╠═31e31fa0-bd10-4ee2-9222-be7283884dc7
 # ╠═aaafbbca-052b-4993-931e-ac5c9a827809
