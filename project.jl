@@ -37,6 +37,7 @@ struct Cooler
 	Tin::Any
 	Tex::Any
 	P::Any
+	Tb::Any
 	name::AbstractString
 end
 
@@ -95,22 +96,6 @@ md"""
 1) Conduct a search of available hydrogen compressors. Does a single compressor exist that serves the required function (gas flow, pressure ratio)? If not, what multiple compressor configuration would satisfy the specifications? Explain and include links where appropriate.
 """
 
-# ╔═╡ 66ffbd89-03a3-4931-ab2b-05f828a2973c
-let
-	
-	power = -5u"kW"	
-	pumps = []
-	P = P_react
-	for i = 1:3
-		pump = Pump(power/n_dot_h2, 10, P, 35u"°C", "H2", 0.8)
-		push!(pumps, pump)
-		P = pump.P * pump.ratio
-	end
-	push!(pumps, Pump(power/n_dot_h2, 2, P, 35u"°C", "H2", 0.8))
-	P_final = pumps[lastindex(pumps)].P * pumps[lastindex(pumps)].ratio
-	uconvert(u"bar", P_final)
-end
-
 # ╔═╡ ee854bbd-10bf-465c-8346-f6725aebdc5b
 ans2 = let
 	molarFlowCH4 = uconvert(u"kmol/s", 0.1 * Q_solar / H_rxn)
@@ -126,6 +111,20 @@ md"""
 Answer: $(round(typeof(ans2), ans2,digits=2))
 """
 
+# ╔═╡ 5dd18145-5491-4137-9194-d4fe10b76816
+ans3 = let
+	pump_size = -1u"kW"
+	pump = Pump(pump_size/n_dot_h2, 10, P_react, 35u"°C", "H2", 0.8)
+	@show temperature(pump)
+end
+
+# ╔═╡ 7841815b-c3a5-4c5c-8970-cf18cfba676d
+md"""
+3) For your compressor configuration in part A, estimate the overall isentropic efficiency of the compression process.
+
+Answer: $(round(ans3,digits=2))
+"""
+
 # ╔═╡ 172aa52c-1a62-435a-876f-91a6bf543cb5
 ans4 = let
 	molH2 = 1u"kg"/M_h2
@@ -138,6 +137,20 @@ md"""
 4) Calculate the final pressure of the tube cylinder at the end of one day.
 
 Answer: $(round(typeof(ans4), ans4,digits=2))
+"""
+
+# ╔═╡ 3a582d65-a2f9-4ccf-aab0-e6d38acbbd50
+md"""
+6) Calculate the rate of exergy destruction in the reactor at nominal efficiency
+
+Answer: $(round(typeof(ans6), ans6,digits=2))
+"""
+
+# ╔═╡ 4a1b2c62-0048-4f58-a597-c0e728c9bdd0
+md"""
+7) What fraction of this reactor exergy destruction is consumed by cooling the graphite from 1600 K to room temperature?
+
+Answer: $(round(ans7,digits=2))
 """
 
 # ╔═╡ 61691472-8282-4588-8ea1-daac04a472d2
@@ -177,39 +190,29 @@ begin
 	end
 end
 
-# ╔═╡ 35180a8c-b24a-4ab7-8a01-695ce9ff0ec1
+# ╔═╡ 6ccee54f-738f-4717-ba9c-c80aee6c5757
 let
-	pump_size = -7.5u"kW"
-	pump = Pump(pump_size/n_dot_h2, 10, 1u"bar", 105u"°C", "H2", 0.8)
-	@show temperature(pump)
-	
-	# @show isentropicEfficiency(pump)
+valve = Valve(298u"K",P_react, 300*P_react, "H2")
+	temperature(valve)
+
 end
 
-# ╔═╡ 5dd20bf6-6416-4214-bbae-a3ef287a47b5
-function isentropicEfficiency(pump::Pump)
-	T_ex = temperature(pump)
-	Hs = PropsSI("Hmolar", "T", T_ex, "P", pump.P*pump.ratio, pump.name)
-	H = PropsSI("Hmolar", "T", pump.T, "P", pump.P, pump.name)
-	Hr = H - pump.W
-	η = (Hs - H)/(Hr - H)
-	return uconvert(u"K/K", η)
+# ╔═╡ 43a8e290-19c9-4150-9c56-a1dad4f1338c
+begin
+	function pressure(hx::Cooler)
+		k = 1.4
+		polytropicExp = k/(k-1)
+		P = hx.P*(hx.Tex/hx.Tin)^polytropicExp
+		return uconvert(u"bar", P)
+	end
 end
 
-# ╔═╡ 5dd18145-5491-4137-9194-d4fe10b76816
-ans3 = let
-	pump_size = -1u"kW"
-	pump = Pump(pump_size/n_dot_h2, 10, P_react, 35u"°C", "H2", 0.8)
-	@show temperature(pump)
-	isentropicEfficiency(pump)
+# ╔═╡ 451a4e43-8a9e-46a3-8919-750648c8289e
+let
+	Tₒ = 298u"K"
+	hx = Cooler(T_pyro, Tₒ, P_react, T_pyro, "H2")
+	uconvert(u"bar/bar", P_react/pressure(hx))
 end
-
-# ╔═╡ 7841815b-c3a5-4c5c-8970-cf18cfba676d
-md"""
-3) For your compressor configuration in part A, estimate the overall isentropic efficiency of the compression process.
-
-Answer: $(round(ans3,digits=2))
-"""
 
 # ╔═╡ 554e0545-78ae-4fb3-9bbc-d00edcc91045
 function molar_enthalpy(T, P, name::String, Hf=0u"kJ/kmol")
@@ -234,6 +237,34 @@ begin
 	end
 end
 
+# ╔═╡ 45e0cbfe-06a3-4504-8ebe-79b7915e7e22
+ans8 = let
+	Ed = ans6
+	@show Ed
+	Tₒ = 298u"K"
+	Tb = (T_pyro + Tₒ)/2
+	hx = Cooler(T_pyro, 298u"K", P_react, "H2") #isobaric cooling
+	Q = -heat(hx)*n_dot_h2
+	uconvert(u"K/K", (1-Tₒ/Tb)*Q/Ed)
+end
+
+# ╔═╡ 8bbdc25d-cc9e-47eb-ad3b-10b532342cb0
+begin
+	function σ(react::Reactor)
+		Sin = PropsSI("Smolar", "T", react.Tin, "P", react.P, react.name)*n_dot_meth
+		Sex = PropsSI("Smolar", "T", react.Tex, "P", react.P, react.name)*n_dot_h2
+		Q = heat(react)
+		return uconvert("kJ/kmol/K", Sex - Sin - Q/react.Tb)
+	end
+
+	function σ(hx::Cooler)
+		@show Sin = PropsSI("Smolar", "T", hx.Tin, "P", hx.P, hx.name)
+		@show Sex = PropsSI("Smolar", "T", hx.Tex, "P", hx.P, hx.name)
+		Q = heat(hx)
+		uconvert(u"kJ/kmol/K", Sex-Sin-Q/hx.Tb)
+	end
+end
+
 # ╔═╡ a5f8c399-a773-4868-b91b-3c8c7ac35103
 function get_flow_rate(m_dot, T=273.15u"K", P=1u"atm")
 	ρ = PropsSI("D", "T", T, "P", P, "CH4")
@@ -247,16 +278,65 @@ function get_flow_exergy(T, P, Tₒ, Pₒ, name::String)
 	H = PropsSI("Hmolar", "T", T, "P", P, name)
 	S = PropsSI("Smolar", "T", T, "P", P, name)
 	flow = H - Hₒ - Tₒ*(S - Sₒ)
-	return uconvert(u"kJ/kmol", flow)
+	return uconvert(u"kJ/kmol", +flow)
+end
+
+# ╔═╡ 6f5470d4-4562-40c5-8229-89137be551cb
+ED_reactor = let
+	Tₒ = 298u"K"
+	Pₒ = 1u"atm"
+	valve = Valve(T_in, P_in, P_react, "CH4")
+	T_in_to_react = temperature(valve)
+
+	Q_in = n_dot_meth*H_rxn/0.1
+	
+	Tb = T_pyro
+	react = Reactor(T_in_to_react, T_pyro, P_react, Tb)
+	
+	chem_Ex = MODEL2["CH4"] - 2*MODEL2["H2"] - MODEL2["C"]
+	e_in = get_flow_exergy(T_in_to_react, P_react, Tₒ, Pₒ, "CH4")
+	e_out = get_flow_exergy(T_pyro, P_react, Tₒ, Pₒ, "H2")
+	flow_exergy = uconvert(u"kW", e_in*n_dot_meth - e_out*n_dot_h2)
+
+	flow_exergy
+	
+	Q_rxn = heat(react)
+	@show heat(react)
+	@show Q_waste = uconvert(u"kW", Q_in - Q_rxn)
+	# @show Q_rxn
+	# Q_Carbon = -3u"kg"*C_carbon*(T_pyro - uconvert(u"K", 35u"°C"))/10u"hr"
+	# Q_H2 = heat(Cooler(T_pyro, 35u"°C", P_react, "H2"))*n_dot_h2
+	# Q_net = uconvert(u"kW",Q_rxn + Q_H2 + Q_Carbon)
+	Q_net = Q_rxn
+	
+	Ed = (1-Tₒ/Tb)*Q_net + flow_exergy + chem_Ex*n_dot_meth
+	uconvert(u"kW", Ed)
+	# @show uconvert(u"kW", Ed)
+end
+
+# ╔═╡ 31e31fa0-bd10-4ee2-9222-be7283884dc7
+ED_C = let
+	Tₒ = 298u"K"
+	Pₒ = 1u"atm"
+	Tb = 300u"K"
+	massCarbon = 3u"kg"
+	ΔT = (T_pyro - Tₒ)
+	Q = massCarbon*C_carbon*ΔT/10u"hr"
+	uconvert(u"kW", (1-Tₒ/Tb)*Q)
+	ED_C/ED_reactor
 end
 
 # ╔═╡ 2ff23a31-b092-4841-bf5c-d92076c61517
 begin
 	function exergyDestroyed(pump::Pump, Tₒ, Pₒ)
 		T = temperature(pump)
+		P = pump.ratio*pump.P
 		e_in = get_flow_exergy(pump.T, pump.P, Tₒ, Pₒ, pump.name)
-		e_ex = get_flow_exergy(T, pump.P*pump.ratio, Tₒ, Pₒ, pump.name)
-		return uconvert(u"kJ/kmol", -pump.W + (e_in - e_ex))
+		e_ex = get_flow_exergy(T, P, Tₒ, Pₒ, pump.name)
+
+		Hex = PropsSI("Hmolar", "T", T, "P", P, pump.name)
+		Hin = PropsSI("Hmolar", "T", pump.T, "P", pump.P, pump.name) 
+		return uconvert(u"kJ/kmol", Hex-Hin + (e_in - e_ex))
 	end
 
 	function exergyDestroyed(valve::Valve, Tₒ, Pₒ)
@@ -271,7 +351,7 @@ begin
 		e_in = get_flow_exergy(react.Tin,react.P,Tₒ,Pₒ,"CH4")
 		e_ex = get_flow_exergy(react.Tex,react.P,Tₒ,Pₒ,"H2")
 		chem_Ex = MODEL2["CH4"] - 2*MODEL2["H2"] - MODEL2["C"]
-		Q = heat(react)
+		Q = -heat(react)
 		Ed = (1-Tₒ/Tb)*Q + n_dot_meth*e_in-n_dot_h2*e_ex + n_dot_meth*chem_Ex
 		return uconvert(u"kW", Ed)
 	end
@@ -280,7 +360,7 @@ begin
 		e_in = get_flow_exergy(hx.Tin, hx.P, Tₒ, Pₒ, hx.name)
 		e_ex = get_flow_exergy(hx.Tex, hx.P, Tₒ, Pₒ, hx.name)
 		Tb = (hx.Tin + hx.Tex)/2
-		Q = heat(hx)
+		Q = -heat(hx)
 		Ex = (1-Tₒ/Tb)*Q + e_in - e_ex
 		return uconvert(u"kJ/mol", Ex)
 	end
@@ -302,63 +382,6 @@ Answer: $(round(typeof(ans5), ans5,digits=2))
 
 """
 
-# ╔═╡ 8a6a970b-491c-41b3-ac76-8c82fa87077e
-ans6 = let
-	# Obviously wrong
-	Tₒ = 298u"K"
-	Pₒ = 1u"atm"
-	valve = Valve(T_in, P_in, P_react, "CH4")
-	T_in_to_react = temperature(valve)
-	react = Reactor(T_in_to_react, T_pyro, P_react, T_pyro)
-	
-	@show heat(react)
-	@show exergyDestroyed(react,Tₒ,Pₒ)
-end
-
-# ╔═╡ 3a582d65-a2f9-4ccf-aab0-e6d38acbbd50
-md"""
-6) Calculate the rate of exergy destruction in the reactor at nominal efficiency
-
-Answer: $(round(typeof(ans6), ans6,digits=2))
-"""
-
-# ╔═╡ 31e31fa0-bd10-4ee2-9222-be7283884dc7
-ans7 = let
-	Ed = ans6 #getting reactor exergy
-	totalExergyDestroyed = Ed * 10u"hr" 
-	massH2 = 1u"kg"
-	molH2 = massH2/M_h2
-	massCarbon = molH2 * M_carbon
-	ΔT = T_pyro - 298u"K"
-	Q = -massCarbon*C_carbon*ΔT
-	uconvert(u"kJ/kJ", Q/totalExergyDestroyed)
-end
-
-# ╔═╡ 4a1b2c62-0048-4f58-a597-c0e728c9bdd0
-md"""
-7) What fraction of this reactor exergy destruction is consumed by cooling the graphite from 1600 K to room temperature?
-
-Answer: $(round(ans7,digits=2))
-"""
-
-# ╔═╡ 45e0cbfe-06a3-4504-8ebe-79b7915e7e22
-ans8 = let
-	Ed = ans6
-	Tₒ = 298u"K"
-	hx = Cooler(T_pyro, 298u"K", P_react, "H2") #isobaric cooling
-	Q = -heat(hx)
-end
-
-# ╔═╡ 53f7ae4b-f96b-4110-bef6-1eb59ccb6f6d
-let
-	Tₒ = 298u"K"
-	Pₒ = 1u"atm"
-	hx = Cooler(T_pyro, 308u"K", P_react, "H2")
-	Q = heat(hx)
-	exergyDestroyed(hx, Tₒ, Pₒ)
-
-end
-
 # ╔═╡ a5099c86-0ad1-4b6d-9574-8a4b2aec492d
 ans9 = let
 	Tₒ = 298u"K"
@@ -376,6 +399,38 @@ md"""
 
 Answer: $(round(typeof(ans9),ans9,digits=2))
 """
+
+# ╔═╡ 21029ebb-c76a-46ec-a29a-a16b3037622c
+function info(η) 
+		Tₒ = 298u"K"
+		Pₒ = 1u"atm"
+		
+		power = -5u"kW"	
+		pumps = []
+		P = P_react
+		for i = 1:3
+			pump = Pump(power/n_dot_h2, 10, P, 35u"°C", "H2", η)
+			push!(pumps, pump)
+			P = pump.P * pump.ratio
+		end
+		push!(pumps, Pump(power/n_dot_h2, 2, P, 35u"°C", "H2", η))
+		
+		for pump in pumps
+			pump |> println
+			@show temperature(pump)
+			@show exergyDestroyed(pump, Tₒ, Pₒ)
+			"\n" |> print
+		end
+end
+
+# ╔═╡ 66ffbd89-03a3-4931-ab2b-05f828a2973c
+let
+	"E = 0.3" |> println
+	info(0.3)
+	"E = 0.9" |> println
+	info(0.9)
+	
+end
 
 # ╔═╡ 47f72e30-757e-4806-b189-2d79fdaa96b2
 md"""
@@ -564,14 +619,13 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═5dd18145-5491-4137-9194-d4fe10b76816
 # ╟─c5e700ce-7b4b-4b9a-987c-f1b98616efde
 # ╠═172aa52c-1a62-435a-876f-91a6bf543cb5
-# ╠═35180a8c-b24a-4ab7-8a01-695ce9ff0ec1
 # ╟─c8ac1365-8599-4ab6-b4be-8626fa63b225
 # ╠═2041825c-155c-4ad5-9360-706ecf96ea46
 # ╟─3a582d65-a2f9-4ccf-aab0-e6d38acbbd50
-# ╠═8a6a970b-491c-41b3-ac76-8c82fa87077e
+# ╠═6f5470d4-4562-40c5-8229-89137be551cb
+# ╠═6ccee54f-738f-4717-ba9c-c80aee6c5757
 # ╟─4a1b2c62-0048-4f58-a597-c0e728c9bdd0
 # ╠═31e31fa0-bd10-4ee2-9222-be7283884dc7
-# ╠═53f7ae4b-f96b-4110-bef6-1eb59ccb6f6d
 # ╟─61691472-8282-4588-8ea1-daac04a472d2
 # ╠═45e0cbfe-06a3-4504-8ebe-79b7915e7e22
 # ╟─62634867-2e70-43bb-a0cd-b9629723f244
@@ -579,12 +633,15 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╟─0965a736-3af7-478d-b07c-e42d9b939473
 # ╠═bb15cd28-6812-4402-bffe-a0c849528643
 # ╠═1d65754b-57ec-420d-a5be-adea52476969
-# ╠═5dd20bf6-6416-4214-bbae-a3ef287a47b5
+# ╠═43a8e290-19c9-4150-9c56-a1dad4f1338c
 # ╠═2ff23a31-b092-4841-bf5c-d92076c61517
 # ╠═46ba6b8a-c7e6-4609-a301-a05eaae599f0
+# ╠═8bbdc25d-cc9e-47eb-ad3b-10b532342cb0
+# ╠═451a4e43-8a9e-46a3-8919-750648c8289e
 # ╠═554e0545-78ae-4fb3-9bbc-d00edcc91045
 # ╠═a5f8c399-a773-4868-b91b-3c8c7ac35103
 # ╠═fc17e89c-8495-42c7-902a-b5b005a4ed7e
+# ╠═21029ebb-c76a-46ec-a29a-a16b3037622c
 # ╠═47f72e30-757e-4806-b189-2d79fdaa96b2
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
