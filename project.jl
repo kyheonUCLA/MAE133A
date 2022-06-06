@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.5
+# v0.19.8
 
 using Markdown
 using InteractiveUtils
@@ -96,6 +96,12 @@ md"""
 1) Conduct a search of available hydrogen compressors. Does a single compressor exist that serves the required function (gas flow, pressure ratio)? If not, what multiple compressor configuration would satisfy the specifications? Explain and include links where appropriate.
 """
 
+# ╔═╡ 7a13c45f-bc2e-452a-9c5c-2f455aaf5597
+md"""
+2) What size of methane mass flow controller (in sccm) is required at nominal efficiency? Find a suitable product. 
+
+"""
+
 # ╔═╡ ee854bbd-10bf-465c-8346-f6725aebdc5b
 ans2 = let
 	molarFlowCH4 = uconvert(u"kmol/s", 0.1 * Q_solar / H_rxn)
@@ -104,25 +110,16 @@ ans2 = let
 	uconvert(u"cm^3/minute", scfm)
 end
 
-# ╔═╡ 7a13c45f-bc2e-452a-9c5c-2f455aaf5597
-md"""
-2) What size of methane mass flow controller (in sccm) is required at nominal efficiency? Find a suitable product. 
-
-Answer: $(round(typeof(ans2), ans2,digits=2))
-"""
-
-# ╔═╡ 5dd18145-5491-4137-9194-d4fe10b76816
-ans3 = let
-	pump_size = -1u"kW"
-	pump = Pump(pump_size/n_dot_h2, 10, P_react, 35u"°C", "H2", 0.8)
-	@show temperature(pump)
-end
-
 # ╔═╡ 7841815b-c3a5-4c5c-8970-cf18cfba676d
 md"""
 3) For your compressor configuration in part A, estimate the overall isentropic efficiency of the compression process.
 
-Answer: $(round(ans3,digits=2))
+"""
+
+# ╔═╡ c5e700ce-7b4b-4b9a-987c-f1b98616efde
+md"""
+4) Calculate the final pressure of the tube cylinder at the end of one day.
+
 """
 
 # ╔═╡ 172aa52c-1a62-435a-876f-91a6bf543cb5
@@ -132,43 +129,62 @@ ans4 = let
 	P_final = uconvert(u"bar", P_tank_min + P_H2)
 end
 
-# ╔═╡ c5e700ce-7b4b-4b9a-987c-f1b98616efde
+# ╔═╡ c8ac1365-8599-4ab6-b4be-8626fa63b225
 md"""
-4) Calculate the final pressure of the tube cylinder at the end of one day.
+5) Calculate the rate of exergy destruction at the mass flow controller at nominal efficiency
 
-Answer: $(round(typeof(ans4), ans4,digits=2))
+
 """
 
 # ╔═╡ 3a582d65-a2f9-4ccf-aab0-e6d38acbbd50
 md"""
 6) Calculate the rate of exergy destruction in the reactor at nominal efficiency
 
-Answer: $(round(typeof(ans6), ans6,digits=2))
 """
+
+# ╔═╡ 74fb0450-10ad-4dc4-b157-2b3517088a93
+
 
 # ╔═╡ 4a1b2c62-0048-4f58-a597-c0e728c9bdd0
 md"""
 7) What fraction of this reactor exergy destruction is consumed by cooling the graphite from 1600 K to room temperature?
 
-Answer: $(round(ans7,digits=2))
 """
+
+# ╔═╡ 31e31fa0-bd10-4ee2-9222-be7283884dc7
+ED_C = let
+	Tₒ = 298u"K"
+	Pₒ = 1u"atm"
+	Tb = 300u"K"
+	massCarbon = 3u"kg"
+	ΔT = (T_pyro - Tₒ)
+	Q = massCarbon*C_carbon*ΔT/10u"hr"
+	uconvert(u"kW", (1-Tₒ/Tb)*Q)
+	
+	
+end
 
 # ╔═╡ 61691472-8282-4588-8ea1-daac04a472d2
 md"""
 8) What fraction of this reactor exergy destruction is consumed by cooling the product hydrogen from 1600 K to room temperature?
 """
 
-# ╔═╡ bb15cd28-6812-4402-bffe-a0c849528643
-ans10 = let
-	x = 5u"K"
-end
+# ╔═╡ 62634867-2e70-43bb-a0cd-b9629723f244
+md"""
+9) Calculate the rate of exergy destruction in the compression process.
+
+"""
 
 # ╔═╡ 0965a736-3af7-478d-b07c-e42d9b939473
 md"""
 10) Calculate the total exergy destroyed as the pressurized hydrogen loses heat from the tank to the surroundings
 
-Answer: $(round(typeof(ans10),ans10,digits=2))
 """
+
+# ╔═╡ bb15cd28-6812-4402-bffe-a0c849528643
+ans10 = let
+	x = 5u"K"
+end
 
 # ╔═╡ 1d65754b-57ec-420d-a5be-adea52476969
 begin
@@ -190,9 +206,16 @@ begin
 	end
 end
 
+# ╔═╡ 5dd18145-5491-4137-9194-d4fe10b76816
+ans3 = let
+	pump_size = -1u"kW"
+	pump = Pump(pump_size/n_dot_h2, 10, P_react, 35u"°C", "H2", 0.8)
+	@show temperature(pump)
+end
+
 # ╔═╡ 6ccee54f-738f-4717-ba9c-c80aee6c5757
 let
-valve = Valve(298u"K",P_react, 300*P_react, "H2")
+	valve = Valve(298u"K",P_react, 300*P_react, "H2")
 	temperature(valve)
 
 end
@@ -209,15 +232,15 @@ end
 
 # ╔═╡ 451a4e43-8a9e-46a3-8919-750648c8289e
 let
-	Tₒ = 298u"K"
-	hx = Cooler(T_pyro, Tₒ, P_react, T_pyro, "H2")
-	uconvert(u"bar/bar", P_react/pressure(hx))
+	#Tₒ = 298u"K"
+	#hx = Cooler(T_pyro, Tₒ, P_react, T_pyro, "H2")
+	#uconvert(u"bar/bar", P_react/pressure(hx))
 end
 
 # ╔═╡ 554e0545-78ae-4fb3-9bbc-d00edcc91045
 function molar_enthalpy(T, P, name::String, Hf=0u"kJ/kmol")
-	Href = PropsSI("Hmolar", "T", 298.15u"K", "P", 1u"atm", name)
-	H =  PropsSI("Hmolar", "T", T, "P", P, name)
+ 	Href = PropsSI("Hmolar", "T", 298.15u"K", "P", 1u"atm", name)
+ 	H =  PropsSI("Hmolar", "T", T, "P", P, name)
 	return uconvert(u"kJ/kmol", Hf + H - Href)
 end
 
@@ -235,17 +258,6 @@ begin
 		Hex = PropsSI("Hmolar", "T", hx.Tex, "P", hx.P, hx.name)
 		return uconvert(u"kJ/mol", (Hex-Hin))
 	end
-end
-
-# ╔═╡ 45e0cbfe-06a3-4504-8ebe-79b7915e7e22
-ans8 = let
-	Ed = ans6
-	@show Ed
-	Tₒ = 298u"K"
-	Tb = (T_pyro + Tₒ)/2
-	hx = Cooler(T_pyro, 298u"K", P_react, "H2") #isobaric cooling
-	Q = -heat(hx)*n_dot_h2
-	uconvert(u"K/K", (1-Tₒ/Tb)*Q/Ed)
 end
 
 # ╔═╡ 8bbdc25d-cc9e-47eb-ad3b-10b532342cb0
@@ -303,27 +315,30 @@ ED_reactor = let
 	Q_rxn = heat(react)
 	@show heat(react)
 	@show Q_waste = uconvert(u"kW", Q_in - Q_rxn)
-	# @show Q_rxn
-	# Q_Carbon = -3u"kg"*C_carbon*(T_pyro - uconvert(u"K", 35u"°C"))/10u"hr"
-	# Q_H2 = heat(Cooler(T_pyro, 35u"°C", P_react, "H2"))*n_dot_h2
-	# Q_net = uconvert(u"kW",Q_rxn + Q_H2 + Q_Carbon)
+	@show Q_rxn
+	Q_Carbon = -3u"kg"*C_carbon*(T_pyro - uconvert(u"K", 35u"°C"))/10u"hr"
+	Q_H2 = heat(Cooler(T_pyro, 35u"°C", P_react, Tb, "H2"))*n_dot_h2
+	Q_net = uconvert(u"kW",Q_rxn + Q_H2 + Q_Carbon)
 	Q_net = Q_rxn
 	
 	Ed = (1-Tₒ/Tb)*Q_net + flow_exergy + chem_Ex*n_dot_meth
 	uconvert(u"kW", Ed)
-	# @show uconvert(u"kW", Ed)
+	@show uconvert(u"kW", Ed)
+	
 end
 
-# ╔═╡ 31e31fa0-bd10-4ee2-9222-be7283884dc7
-ED_C = let
+# ╔═╡ aaafbbca-052b-4993-931e-ac5c9a827809
+ED_C/ED_reactor
+
+# ╔═╡ 45e0cbfe-06a3-4504-8ebe-79b7915e7e22
+ans8 = let
+	Ed = ED_reactor
+	@show Ed
 	Tₒ = 298u"K"
-	Pₒ = 1u"atm"
-	Tb = 300u"K"
-	massCarbon = 3u"kg"
-	ΔT = (T_pyro - Tₒ)
-	Q = massCarbon*C_carbon*ΔT/10u"hr"
-	uconvert(u"kW", (1-Tₒ/Tb)*Q)
-	ED_C/ED_reactor
+	Tb = (T_pyro + Tₒ)/2
+	hx = Cooler(T_pyro, 298u"K", P_react, Tb, "H2") #isobaric cooling
+	Q = heat(hx)*n_dot_h2
+	uconvert(u"K/K", (1-Tₒ/Tb)*Q/Ed)
 end
 
 # ╔═╡ 2ff23a31-b092-4841-bf5c-d92076c61517
@@ -374,14 +389,6 @@ ans5 = let
 	exergyDestroyed(valve, Tₒ, Pₒ)
 end
 
-# ╔═╡ c8ac1365-8599-4ab6-b4be-8626fa63b225
-md"""
-5) Calculate the rate of exergy destruction at the mass flow controller at nominal efficiency
-
-Answer: $(round(typeof(ans5), ans5,digits=2))
-
-"""
-
 # ╔═╡ a5099c86-0ad1-4b6d-9574-8a4b2aec492d
 ans9 = let
 	Tₒ = 298u"K"
@@ -392,13 +399,6 @@ ans9 = let
 	# isentropicEfficiency(pump)
 	exergyDestroyed(pump, Tₒ, Pₒ)
 end
-
-# ╔═╡ 62634867-2e70-43bb-a0cd-b9629723f244
-md"""
-9) Calculate the rate of exergy destruction in the compression process.
-
-Answer: $(round(typeof(ans9),ans9,digits=2))
-"""
 
 # ╔═╡ 21029ebb-c76a-46ec-a29a-a16b3037622c
 function info(η) 
@@ -463,6 +463,10 @@ uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
+[[CompilerSupportLibraries_jll]]
+deps = ["Artifacts", "Libdl"]
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+
 [[ConstructionBase]]
 deps = ["LinearAlgebra"]
 git-tree-sha1 = "f74e9d5388b8620b4cee35d4c5a618dd4dc547f4"
@@ -519,7 +523,7 @@ uuid = "29816b5a-b9ab-546f-933c-edad1886dfa8"
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 
 [[LinearAlgebra]]
-deps = ["Libdl"]
+deps = ["Libdl", "libblastrampoline_jll"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[Logging]]
@@ -538,6 +542,10 @@ uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 
 [[NetworkOptions]]
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
+
+[[OpenBLAS_jll]]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
+uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
 
 [[Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
@@ -558,7 +566,7 @@ deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 
 [[Random]]
-deps = ["Serialization"]
+deps = ["SHA", "Serialization"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [[SHA]]
@@ -595,6 +603,10 @@ version = "1.11.0"
 deps = ["Libdl"]
 uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
 
+[[libblastrampoline_jll]]
+deps = ["Artifacts", "Libdl", "OpenBLAS_jll"]
+uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+
 [[nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
@@ -617,15 +629,17 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═ee854bbd-10bf-465c-8346-f6725aebdc5b
 # ╟─7841815b-c3a5-4c5c-8970-cf18cfba676d
 # ╠═5dd18145-5491-4137-9194-d4fe10b76816
-# ╟─c5e700ce-7b4b-4b9a-987c-f1b98616efde
+# ╠═c5e700ce-7b4b-4b9a-987c-f1b98616efde
 # ╠═172aa52c-1a62-435a-876f-91a6bf543cb5
 # ╟─c8ac1365-8599-4ab6-b4be-8626fa63b225
 # ╠═2041825c-155c-4ad5-9360-706ecf96ea46
 # ╟─3a582d65-a2f9-4ccf-aab0-e6d38acbbd50
+# ╠═74fb0450-10ad-4dc4-b157-2b3517088a93
 # ╠═6f5470d4-4562-40c5-8229-89137be551cb
 # ╠═6ccee54f-738f-4717-ba9c-c80aee6c5757
 # ╟─4a1b2c62-0048-4f58-a597-c0e728c9bdd0
 # ╠═31e31fa0-bd10-4ee2-9222-be7283884dc7
+# ╠═aaafbbca-052b-4993-931e-ac5c9a827809
 # ╟─61691472-8282-4588-8ea1-daac04a472d2
 # ╠═45e0cbfe-06a3-4504-8ebe-79b7915e7e22
 # ╟─62634867-2e70-43bb-a0cd-b9629723f244
